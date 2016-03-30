@@ -125,7 +125,7 @@ class Environment:
     # return a dict of state attributes of the environment
     def state(self):
         s = dict()
-        s["pellets left"] = len(self.pellets) / float(self.density)
+        # s["pellets left"] = len(self.pellets) / float(self.density)
         adj = [[" " for i in range(7)] for j in range(7)]
 
         for x in range(-3, 4):
@@ -193,6 +193,8 @@ class Agent:
 # train an agent
 def train_agent(env, agent, episodes=1000):
     for episode in range(episodes):
+        if episode % 1000 == 0:
+            print "Training {0}".format(episode)
         environment.initialize()
         while not environment.is_over():
             s = env.state()
@@ -222,5 +224,9 @@ if __name__ == "__main__":
     environment = Environment(20, 10)
     agent = Agent()
 
-    train_agent(environment, agent, episodes=1000)
-    run_agent(environment, agent)
+    train_agent(environment, agent, episodes=10000)
+    
+    run = "y"
+    while run == "y":
+        run_agent(environment, agent)
+        run = raw_input("Restart (y/n): ")
