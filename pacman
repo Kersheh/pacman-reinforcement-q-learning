@@ -3,7 +3,7 @@
 # Q-learning - Simplified Pacman
 # Source: http://modelai.gettysburg.edu/2016/pyconsole/ex5/index.html
 
-import sys, re, time, random, collections
+import os, sys, re, time, random, collections
 import cPickle as pickle
 
 ## Game board with pellets and enemy ghost
@@ -149,8 +149,8 @@ class Environment:
                 
         s["adjacent"] = adj
         
-        # for x in range(0, 7):
-        #     for y in range(0, 7):
+        # for x in range(0, 9):
+        #     for y in range(0, 9):
         #         if s["adjacent"][x][y] is " ":
         #             print "_",
         #         else:
@@ -163,11 +163,16 @@ class Environment:
 ## Agent to learn actions within environment
 class Agent:
     # agent constructor
+    # var:      w - dictionary of weights based on state, action pair
+    #           epsilon - agent's exploration rate
+    #           gamma - agent's Q discount factor
+    #           alpha - agent's Q learning rate
+    #           age - agent's age in generations/episodes
     def __init__(self):
-        self.w = collections.defaultdict(float) # each w((s, a)) starts at 0
-        self.epsilon = 0.05 # exploration rate
-        self.gamma = 0.99 # discount factor
-        self.alpha = 0.01 # learning rate
+        self.w = collections.defaultdict(float) # weights initialized at 0.0
+        self.epsilon = 0.05
+        self.gamma = 0.99
+        self.alpha = 0.01
         self.age = 0
 
     # return an action in a given state by the agent
@@ -235,25 +240,54 @@ def run_agent(env, agent, refresh=0.1):
 # display ui help
 def help():
     print "Q-learning Pacman"
-    print "     commands: [t] train n   [a] age    [s] save    [q] quit"
-    print "               [r] run       [l] load   [h] help"
-    print "     train: optional n generations (default n=1000)"
+    print "     commands: [t] train n   [n] new     [s] save f  [h] help"
+    print "               [r] run       [i] info    [l] load f  [q] quit"
+    print "         train: optional n generations (default n=1000)"
+    print "         load: import Pacman from f (filename)"
+    print "         save: export Pacman to f (filename)"
+
+# return new agent
+def new():
+    return Agent()
 
 # return loaded agent from external file
-def load():
-    return pickle.load(open( "save.p", "rb" ))
+def load(prev_a, f="default_save"):
+    try:
+        print "Loading Pacman from '" + str(f) + ".p'"
+        a = pickle.load(open("saves/" + str(f) + ".p", "rb"))
+    except:
+        print "Error: File '" + f + ".p' not found."
+        return prev_a
+    return a
 
 # save serialized agent to file
-def save(agent):
-    pickle.dump(agent, open("save.p", "wb"))
+def save(agent, f="default_save"):
+    path = "saves/" + str(f) + ".p"
+    if os.path.isfile(path):
+        print "test"
+    if f != "default_save" and os.path.isfile(path):
+        confirm = ""
+        while True:
+            confirm = raw_input("File '" + f + ".p' already exists. Overwrite? (y/n) ")
+            if confirm.lower() == "y":
+                print "Saving Pacman to '" + f + ".p'"
+                pickle.dump(agent, open(path, "wb"))
+                break
+            elif confirm.lower() == "n":
+                break
+            else:
+                print "Error: Invalid response (y/n)."
+    else:
+        print "Saving Pacman to '" + f + ".p'"
+        pickle.dump(agent, open(path, "wb"))
 
 # pacman q-learning interface
 def ui(e, a):
     cmd = ""
-    cmds = [ "train", "t", "run", "r", "age", "a", "quit", "q", 
-              "help", "h", "load", "l", "save", "s"]
+    cmds = [ "train", "t", "run", "r", "info", "i", "quit", "q", 
+              "help", "h", "load", "l", "save", "s", "new", "n" ]
     help()
-    print "     agent generation: 0"
+    print "New Pacman - generation: 0"
     while cmd != "q" or cmd != "quit":
         cmd = raw_input("pacman> ")
         c = cmd.split(" ")
@@ -273,14 +307,21 @@ def ui(e, a):
             if c[0] == "r" or c[0] == "run":
                 run_agent(e, a, refresh=0.09)
                 print "Pacman generation: {0}".format(a.age)
-            if c[0] == "a" or c[0] == "age":
+            if c[0] == "info" or c[0] == "i":
                 print "Pacman generation: {0}".format(a.age)
+            if c[0] == "new" or c[0] == "n":
+                a = new()
+                print "New Pacman - generation: 0"
             if c[0] == "l" or c[0] == "load":
-                print "Loading Pacman from 'save.p'"
-                a = load()
+                if len(c) > 1:
+                    a = load(a, c[1])
+                else:
+                    a = load(a)
             if c[0] == "s" or c[0] == "save":
-                print "Saving Pacman to 'save.p'"
-                save(a)
+                if len(c) > 1:
+                    save(a, c[1])
+                else:
+                    save(a)
             if c[0] == "h" or c[0] == "help":
                 help()
             if c[0] == "q" or c[0] == "quit":
