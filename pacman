@@ -4,6 +4,7 @@
 # Source: http://modelai.gettysburg.edu/2016/pyconsole/ex5/index.html
 
 import sys, re, time, random, collections
+import cPickle as pickle
 
 ## Game board with pellets and enemy ghost
 class Environment:
@@ -167,6 +168,7 @@ class Agent:
         self.epsilon = 0.05 # exploration rate
         self.gamma = 0.99 # discount factor
         self.alpha = 0.01 # learning rate
+        self.age = 0
 
     # return an action in a given state by the agent
     def choose(self, s, actions):
@@ -195,6 +197,7 @@ class Agent:
 # train an agent
 def train_agent(env, agent, episodes=1000):
     for episode in range(episodes):
+        agent.age += 1
         if episode % 1000 == 0:
             n = episode + 1000
             if n > episodes:
@@ -229,18 +232,26 @@ def run_agent(env, agent, refresh=0.1):
     else:
         print "Pacman has found all the pellets!"
 
+# display ui help
 def help():
     print "Q-learning Pacman"
-    print "     commands: [t] train n    [a] age    [h] help"
-    print "               [r] run        [q] quit"
+    print "     commands: [t] train n   [a] age    [s] save    [q] quit"
+    print "               [r] run       [l] load   [h] help"
     print "     train: optional n generations (default n=1000)"
+
+# return loaded agent from external file
+def load():
+    return pickle.load(open( "save.p", "rb" ))
+
+# save serialized agent to file
+def save(agent):
+    pickle.dump(agent, open("save.p", "wb"))
 
 # pacman q-learning interface
 def ui(e, a):
-    gen = 0
     cmd = ""
     cmds = [ "train", "t", "run", "r", "age", "a", "quit", "q", 
-              "help", "h" ]
+              "help", "h", "load", "l", "save", "s"]
     help()
     print "     agent generation: 0"
     while cmd != "q" or cmd != "quit":
@@ -252,20 +263,24 @@ def ui(e, a):
                     try:
                         n = int(c[1])
                         if n:
-                            gen += n
                             print "User: n={0} episodes.".format(n)
                             train_agent(e, a, n)
                     except:
                         print "Error: Invalid n episodes."
                 else:
-                    gen += 1000
                     print "Default: n=1000 episodes."
                     train_agent(e, a, episodes=1000)
             if c[0] == "r" or c[0] == "run":
                 run_agent(e, a, refresh=0.09)
-                print "Pacman generation: {0}".format(gen)
+                print "Pacman generation: {0}".format(a.age)
             if c[0] == "a" or c[0] == "age":
-                print "Pacman generation: {0}".format(gen)
+                print "Pacman generation: {0}".format(a.age)
+            if c[0] == "l" or c[0] == "load":
+                print "Loading Pacman from 'save.p'"
+                a = load()
+            if c[0] == "s" or c[0] == "save":
+                print "Saving Pacman to 'save.p'"
+                save(a)
             if c[0] == "h" or c[0] == "help":
                 help()
             if c[0] == "q" or c[0] == "quit":
