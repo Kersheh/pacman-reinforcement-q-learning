@@ -59,10 +59,11 @@ class Environment:
     
     # return actions pacman can make in the environment
     def actions(self):
-        if self.is_over():
-            return None
-        else:
-            return self.directions
+        # if self.is_over():
+        #     return None
+        # else:
+        #     
+        return self.directions
 
     # return whether the episode is done
     def is_over(self):
@@ -125,16 +126,42 @@ class Environment:
     def state(self):
         s = dict()
         s["pellets left"] = len(self.pellets) / float(self.density)
+        adj = [[" " for i in range(7)] for j in range(7)]
+
+        for x in range(-3, 4):
+            for y in range(-3, 4):
+                if (self.pacman[0] + x, self.pacman[1] + y) == self.pacman:
+                    adj[x + 3][y + 3] = "O"
+                elif (self.pacman[0] + x, self.pacman[1] + y) == self.ghost:
+                    adj[x + 3][y + 3] = "G"
+                elif (self.pacman[0] + x, self.pacman[1] + y) in self.pellets:
+                    adj[x + 3][y + 3] = "."
+                elif self.pacman[0] + x <= 0 or \
+                     self.pacman[0] + x >= self.size - 1 or \
+                     self.pacman[1] + y <= 0 or \
+                     self.pacman[1] + y >= self.size - 1:
+                    adj[x + 3][y + 3] = "X"
+                else:
+                    adj[x + 3][y + 3] = " "
+                
+        s["adjacent"] = adj
         
-        # add more features
-        
+        # for x in range(0, 7):
+        #     for y in range(0, 7):
+        #         if s["adjacent"][x][y] is " ":
+        #             print "_",
+        #         else:
+        #             print s["adjacent"][x][y],
+        #     print
+        # print
+
         return s
 
 ## Agent to learn actions within environment
 class Agent:
     # agent constructor
     def __init__(self):
-        self.w = collections.defaultdict(float) # each w((f,a)) starts at 0
+        self.w = collections.defaultdict(float) # each w((s, a)) starts at 0
         self.epsilon = 0.05 # exploration rate
         self.gamma = 0.99 # discount factor
         self.alpha = 0.01 # learning rate
@@ -155,18 +182,19 @@ class Agent:
 
     # return estimated Q-value of an action based on a given state
     def Q(self, s, a):
-        return 0 # YOU CHANGE THIS
+        return self.w[str((s, a))]
     
     # update weights based on observed step
     def update_weights(self, s, a, sp, r, actions):
-        pass
+        max_val = max([self.Q(sp, action) for action in actions])
+        self.w[str((s, a))] = self.Q(s, a) + self.alpha * (r + self.gamma * max_val \
+                                                    - self.Q(s, a))
 
 # train an agent
 def train_agent(env, agent, episodes=1000):
     for episode in range(episodes):
         environment.initialize()
         while not environment.is_over():
-            
             s = env.state()
             actions = env.actions()
             a = agent.choose(s, actions)
