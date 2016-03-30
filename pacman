@@ -189,14 +189,17 @@ class Agent:
     # update weights based on observed step
     def update_weights(self, s, a, sp, r, actions):
         max_val = max([self.Q(sp, action) for action in actions])
-        self.w[str((s, a))] = self.Q(s, a) + self.alpha * (r + self.gamma * max_val \
-                                                    - self.Q(s, a))
+        self.w[str((s, a))] = self.Q(s, a) + self.alpha * \
+                              (r + self.gamma * max_val - self.Q(s, a))
 
 # train an agent
 def train_agent(env, agent, episodes=1000):
     for episode in range(episodes):
         if episode % 1000 == 0:
-            print "Training {0}".format(episode)
+            n = episode + 1000
+            if n > episodes:
+                n = episodes
+            print "Training {0} --> {1}".format(episode, n)
         environment.initialize()
         while not environment.is_over():
             s = env.state()
@@ -221,6 +224,10 @@ def run_agent(env, agent, refresh=0.1):
         env.update(a)
         time.sleep(refresh)
         env.display()
+    if env.pellets > 0:
+        print "Pacman has died with {0} pellets remaining.".format(len(env.pellets))
+    else:
+        print "Pacman has found all the pellets!"
 
 def help():
     print "Q-learning Pacman"
@@ -256,8 +263,9 @@ def ui(e, a):
                     train_agent(e, a, episodes=1000)
             if c[0] == "r" or c[0] == "run":
                 run_agent(e, a, refresh=0.09)
+                print "Pacman generation: {0}".format(gen)
             if c[0] == "a" or c[0] == "age":
-                print "Agent generation: {0}".format(gen)
+                print "Pacman generation: {0}".format(gen)
             if c[0] == "h" or c[0] == "help":
                 help()
             if c[0] == "q" or c[0] == "quit":
