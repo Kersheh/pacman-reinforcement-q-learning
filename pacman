@@ -1,7 +1,9 @@
+#!/usr/bin/python
+
 # Q-learning - Simplified Pacman
 # Source: http://modelai.gettysburg.edu/2016/pyconsole/ex5/index.html
 
-import time, random, collections
+import sys, re, time, random, collections
 
 ## Game board with pellets and enemy ghost
 class Environment:
@@ -126,23 +128,23 @@ class Environment:
     def state(self):
         s = dict()
         # s["pellets left"] = len(self.pellets) / float(self.density)
-        adj = [[" " for i in range(7)] for j in range(7)]
+        adj = [[" " for i in range(9)] for j in range(9)]
 
-        for x in range(-3, 4):
-            for y in range(-3, 4):
+        for x in range(-4, 5):
+            for y in range(-4, 5):
                 if (self.pacman[0] + x, self.pacman[1] + y) == self.pacman:
-                    adj[x + 3][y + 3] = "O"
+                    adj[x + 4][y + 4] = "O"
                 elif (self.pacman[0] + x, self.pacman[1] + y) == self.ghost:
-                    adj[x + 3][y + 3] = "G"
+                    adj[x + 4][y + 4] = "G"
                 elif (self.pacman[0] + x, self.pacman[1] + y) in self.pellets:
-                    adj[x + 3][y + 3] = "."
+                    adj[x + 4][y + 4] = "."
                 elif self.pacman[0] + x <= 0 or \
                      self.pacman[0] + x >= self.size - 1 or \
                      self.pacman[1] + y <= 0 or \
                      self.pacman[1] + y >= self.size - 1:
-                    adj[x + 3][y + 3] = "X"
+                    adj[x + 4][y + 4] = "X"
                 else:
-                    adj[x + 3][y + 3] = " "
+                    adj[x + 4][y + 4] = " "
                 
         s["adjacent"] = adj
         
@@ -208,7 +210,7 @@ def train_agent(env, agent, episodes=1000):
             agent.update_weights(s, a, sp, r, actions)
 
 # execute trained agent
-def run_agent(env, agent):
+def run_agent(env, agent, refresh=0.1):
     env.initialize()
     env.display()
     while not env.is_over():
@@ -217,16 +219,54 @@ def run_agent(env, agent):
         a = agent.policy(s, actions)
         
         env.update(a)
-        time.sleep(0.1)
+        time.sleep(refresh)
         env.display()
+
+def help():
+    print "Q-learning Pacman"
+    print "     commands: [t] train n    [a] age    [h] help"
+    print "               [r] run        [q] quit"
+    print "     train: optional n generations (default n=1000)"
+
+# pacman q-learning interface
+def ui(e, a):
+    gen = 0
+    cmd = ""
+    cmds = [ "train", "t", "run", "r", "age", "a", "quit", "q", 
+              "help", "h" ]
+    help()
+    print "     agent generation: 0"
+    while cmd != "q" or cmd != "quit":
+        cmd = raw_input("pacman> ")
+        c = cmd.split(" ")
+        if c[0] in cmds:
+            if c[0] == "t" or c[0] == "train":
+                if len(c) > 1:
+                    try:
+                        n = int(c[1])
+                        if n:
+                            gen += n
+                            print "User: n={0} episodes.".format(n)
+                            train_agent(e, a, n)
+                    except:
+                        print "Error: Invalid n episodes."
+                else:
+                    gen += 1000
+                    print "Default: n=1000 episodes."
+                    train_agent(e, a, episodes=1000)
+            if c[0] == "r" or c[0] == "run":
+                run_agent(e, a, refresh=0.09)
+            if c[0] == "a" or c[0] == "age":
+                print "Agent generation: {0}".format(gen)
+            if c[0] == "h" or c[0] == "help":
+                help()
+            if c[0] == "q" or c[0] == "quit":
+                sys.exit(0)
+        else:
+            print "Error: Invalid command."
 
 if __name__ == "__main__":
     environment = Environment(20, 10)
     agent = Agent()
 
-    train_agent(environment, agent, episodes=10000)
-    
-    run = "y"
-    while run == "y":
-        run_agent(environment, agent)
-        run = raw_input("Restart (y/n): ")
+    ui(environment, agent)
