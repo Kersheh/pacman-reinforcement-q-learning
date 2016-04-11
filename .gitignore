@@ -7,4 +7,6 @@
 ehthumbs.db
 Thumbs.db
 Project.pdf
-saves
+*.p
+*.docx
+debug.txt

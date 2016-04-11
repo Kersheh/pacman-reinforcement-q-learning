@@ -139,40 +139,27 @@ class Environment:
         else:
             self.next_reward = 0
 
-    # return a dict of state attributes of the environment
-    def state(self):
-        s = dict()
-        # s["pellets left"] = len(self.pellets) / float(self.density)
-        adj = [[" " for i in range(9)] for j in range(9)]
+    # return a state representing a window of view around Pacman's location
+    def state(self, window):
+        adj = [[" " for i in range(window * 2 + 1)] for j in range(window * 2 + 1)]
 
-        for x in range(-4, 5):
-            for y in range(-4, 5):
+        for x in range(-window, window + 1):
+            for y in range(-window, window + 1):
                 if (self.pacman[0] + x, self.pacman[1] + y) == self.pacman:
-                    adj[x + 4][y + 4] = "O"
+                    adj[x + window][y + window] = "O"
                 elif (self.pacman[0] + x, self.pacman[1] + y) == self.ghost:
-                    adj[x + 4][y + 4] = "G"
+                    adj[x + window][y + window] = "G"
                 elif (self.pacman[0] + x, self.pacman[1] + y) in self.pellets:
-                    adj[x + 4][y + 4] = "."
+                    adj[x + window][y + window] = "."
                 elif self.pacman[0] + x <= 0 or \
                      self.pacman[0] + x >= self.size - 1 or \
                      self.pacman[1] + y <= 0 or \
                      self.pacman[1] + y >= self.size - 1:
-                    adj[x + 4][y + 4] = "X"
+                    adj[x + window][y + window] = "X"
                 else:
-                    adj[x + 4][y + 4] = " "
+                    adj[x + window][y + window] = " "
                 
-        s["adjacent"] = adj
-        
-        # for x in range(0, 9):
-        #     for y in range(0, 9):
-        #         if s["adjacent"][x][y] is " ":
-        #             print "_",
-        #         else:
-        #             print s["adjacent"][x][y],
-        #     print
-        # print
-
-        return s
+        return adj
 
 ## Agent to learn actions within environment
 class Agent:
@@ -182,12 +169,40 @@ class Agent:
     #           gamma - agent's Q discount factor
     #           alpha - agent's Q learning rate
     #           age - agent's age in generations/episodes
-    def __init__(self):
+    def __init__(self, window=2):
         self.w = collections.defaultdict(float) # weights initialized at 0.0
         self.epsilon = 0.05
         self.gamma = 0.99
         self.alpha = 0.01
         self.age = 0
+        self.window = window # agent's view window
+                             # NOTE: changing this will conflict with different
+                             # externally saved versions of the agent
+
+    # debugging function formats state to string
+    def _agent_state_to_string(self, state):
+        state_list = eval(state)
+        s = ""
+        for x in range(0, self.window * 2 + 1):
+            for y in range(0, self.window * 2 + 1):
+                if state_list[0][x][y] is " ":
+                    s += "_"
+                else:
+                    s += state_list[0][x][y]
+            s += "\n"
+        s += "Action: {0}\n".format(state_list[1])
+        return s
+
+    # debugging function exports agent dictionary
+    def _agent_history(self):
+        out = open("debug.txt", "w")
+        s = ""
+        for state in self.w:
+            if self.w.get(state) != 0:
+                s += "Q value: {0}\nState:\n{1}\n".format(self.w.get(state), \
+                                                self._agent_state_to_string(state))
+        out.write(s)
+        out.close()
 
     # return an action in a given state by the agent
     def choose(self, s, actions):
@@ -205,12 +220,12 @@ class Agent:
 
     # return estimated Q-value of an action based on a given state
     def Q(self, s, a):
-        return self.w[str((s, a))]
+        return self.w[repr((s, a))]
     
     # update weights based on observed step
     def update_weights(self, s, a, sp, r, actions):
         max_val = max([self.Q(sp, action) for action in actions])
-        self.w[str((s, a))] = self.Q(s, a) + self.alpha * \
+        self.w[repr((s, a))] = self.Q(s, a) + self.alpha * \
                               (r + self.gamma * max_val - self.Q(s, a))
 
 # train an agent
@@ -224,25 +239,24 @@ def train_agent(env, agent, episodes=1000):
             print "Training {0} --> {1}".format(episode, n)
         environment.initialize()
         while not environment.is_over():
-            s = env.state()
+            s = env.state(agent.window)
             actions = env.actions()
             a = agent.choose(s, actions)
             env.update(a)
             
-            sp = env.state()
+            sp = env.state(agent.window)
             r = env.reward()
             actions = env.actions()
             agent.update_weights(s, a, sp, r, actions)
 
 # execute trained agent
 def run_agent(env, agent, refresh=0.1):
-    # try / except block allows KeyboardInterrupt
     try:
         moves = 0
         env.initialize()
         env.display()
         while not env.is_over():
-            s = env.state()
+            s = env.state(agent.window)
             actions = env.actions()
             a = agent.policy(s, actions)
             
@@ -261,16 +275,22 @@ def run_agent(env, agent, refresh=0.1):
 # display ui help
 def help():
     print "Q-learning Pacman"
-    print "     commands: [t] train n   [n] new     [s] save f  [h] help"
-    print "               [r] run       [i] info    [l] load f  [q] quit"
-    print "         train: optional n generations (default n=1000)"
+    print "     commands: [t] train n [n] new     [s] save f  [h] help    [d] debug"
+    print "               [r] run     [i] info    [l] load f  [q] quit"
+    print "         run: ctrl+c to gracefully interrupt instance"
+    print "         train: train Pacman for n generations (default n=1000)"
     print "         load: import Pacman from f (filename)"
     print "         save: export Pacman to f (filename)"
+    print "         debug: export agent's states to 'debug.txt'"
 
 # display agent info
 def info(agent):
     print "Pacman generation: {0}".format(agent.age)
-    print "Total trained states: {0}".format(len(agent.w))
+    states = 0
+    for w in agent.w:
+        if agent.w.get(w) != 0:
+            states += 1
+    print "Total trained states: {0}".format(states)
 
 # return new agent
 def new():
@@ -311,7 +331,8 @@ def save(agent, f="default_save"):
 def ui(e, a):
     cmd = ""
     cmds = [ "train", "t", "run", "r", "info", "i", "quit", "q", 
-              "help", "h", "load", "l", "save", "s", "new", "n" ]
+              "help", "h", "load", "l", "save", "s", "new", "n", 
+              "debug", "d" ]
     help()
     print "New Pacman - generation: 0"
     while cmd != "q" or cmd != "quit":
@@ -334,9 +355,9 @@ def ui(e, a):
                 moves = run_agent(e, a, refresh=0.09)
                 print "Pacman generation: {0}".format(a.age)
                 print "Total moves: {0}".format(moves)
-            if c[0] == "info" or c[0] == "i":
+            if c[0] == "i" or c[0] == "info":
                 info(a)
-            if c[0] == "new" or c[0] == "n":
+            if c[0] == "n" or c[0] == "new":
                 a = new()
                 print "New Pacman - generation: 0"
             if c[0] == "l" or c[0] == "load":
@@ -351,6 +372,8 @@ def ui(e, a):
                     save(a)
             if c[0] == "h" or c[0] == "help":
                 help()
+            if c[0] == "d" or c[0] == "debug":
+                a._agent_history()
             if c[0] == "q" or c[0] == "quit":
                 sys.exit(0)
         else:
