@@ -11,6 +11,7 @@ class Environment:
     # environment constructor
     # var:      size - board size
     #           density - number of pellets
+    #           directions - legal coordinates pacman can move
     def __init__(self, size, density):
         self.size = size
         self.density = density
@@ -76,10 +77,6 @@ class Environment:
     
     # return actions pacman can make in the environment
     def actions(self):
-        # if self.is_over():
-        #     return None
-        # else:
-        #     
         return self.directions
 
     # return whether the episode is done
@@ -316,8 +313,6 @@ def load(prev_a, f="default_save"):
 # save serialized agent to file
 def save(agent, f="default_save"):
     path = "saves/" + str(f) + ".p"
-    if os.path.isfile(path):
-        print "test"
     if f != "default_save" and os.path.isfile(path):
         confirm = ""
         while True:
