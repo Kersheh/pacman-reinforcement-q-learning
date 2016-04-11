@@ -46,7 +46,7 @@ class Environment:
         for pellet in self.pellets:
             board[pellet[0]][pellet[1]] = "."
         return board
-                                
+
     # spawn ghost at one end of pacman's row or column randomly
     def new_ghost(self):
         (x, y) = self.pacman
@@ -169,14 +169,16 @@ class Agent:
     #           gamma - agent's Q discount factor
     #           alpha - agent's Q learning rate
     #           age - agent's age in generations/episodes
+    #           prev - agent's previous location
+    #           window - agent's view window
     def __init__(self, window=2):
         self.w = collections.defaultdict(float) # weights initialized at 0.0
         self.epsilon = 0.05
         self.gamma = 0.99
         self.alpha = 0.01
         self.age = 0
-        self.window = window # agent's view window
-                             # NOTE: changing this will conflict with different
+        self.prev = (0, 0)
+        self.window = window # NOTE: changing this will conflict with different
                              # externally saved versions of the agent
 
     # debugging function formats state to string
@@ -257,9 +259,14 @@ def run_agent(env, agent, refresh=0.1):
         env.display()
         while not env.is_over():
             s = env.state(agent.window)
-            actions = env.actions()
+            actions = env.actions()[:]
+            # restrict pacman from returning to previous location
+            for a in actions:
+                if tuple(map(sum, zip(a, env.pacman))) == agent.prev:
+                    actions.remove(a)
             a = agent.policy(s, actions)
             
+            agent.prev = env.pacman
             env.update(a)
             time.sleep(refresh)
             env.display()
