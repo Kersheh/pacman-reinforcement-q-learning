@@ -1,12 +1,13 @@
 #!/usr/bin/python
 
 # Q-learning - Simplified Pacman
-# Source: http://modelai.gettysburg.edu/2016/pyconsole/ex5/index.html
+# Original basis of project idea from: 
+# http://modelai.gettysburg.edu/2016/pyconsole/ex5/index.html
 
 import os, sys, re, time, random, collections
 import cPickle as pickle
 
-## Game board with pellets and enemy ghost
+## Game board with pacman, pellets, and enemy ghost
 class Environment:
     # environment constructor
     # var:      size - board size
@@ -161,7 +162,7 @@ class Environment:
 ## Agent to learn actions within environment
 class Agent:
     # agent constructor
-    # var:      w - dictionary of weights based on state, action pair
+    # var:      w - dictionary of weights based on state-action pair
     #           epsilon - agent's exploration rate
     #           gamma - agent's Q discount factor
     #           alpha - agent's Q learning rate
