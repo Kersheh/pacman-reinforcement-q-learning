@@ -18,6 +18,6 @@ On run, a list of commands will be presented to use the script.
 `t` or `train` without a specified quantity will train Pacman for a default 
 number of generations (1000).
 
-`l` or `load` without a specified file name will load the included default save
-file `"default_save.p"` originally trained on 3000 generations. `s` or `save`
-without a specified file name will save to the default `"default_save.p"`.
+`l` or `load` without a specified file name will load a default save file
+`"default_save.p"` from the the `saves/` directory. `s` or `save` without a 
+specified file name will save to the default `"default_save.p"`.
